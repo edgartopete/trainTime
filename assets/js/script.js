@@ -9,22 +9,31 @@ $("#submit").on("click", function (event) {
     var time = moment($("#inputTime").val().trim(), "hh:mm").format("X");
     var frequency = $("#inputFrequency").val().trim();
 
+    if (train !== "" && destination !== "" && time !== "" & frequency !== "") {
+        var newTrain = {
+            train: train,
+            destination: destination,
+            time: time,
+            frequency: frequency
+        }
 
 
-    var newTrain = {
-        train: train,
-        destination: destination,
-        time: time,
-        frequency: frequency
+        database.ref("/trains").push(newTrain);
+
+        $("#imputName").val("");
+        $("#inputDest").val("");
+        $("#inputTime").val("");
+        $("#inputFrequency").val("");
+
+    }else{
+
+        $("#myModal").modal({
+            backdrop: 'static',
+            keyboard: false
+        });
     }
 
 
-    database.ref("/trains").push(newTrain);
-
-    $("#imputName").val("");
-    $("#inputDest").val("");
-    $("#inputTime").val("");
-    $("#inputFrequency").val("");
 
 
 });
@@ -38,27 +47,39 @@ database.ref("/trains").on("child_added", function (childSnapshot) {
     var time = childSnapshot.val().time;
     var frequency = childSnapshot.val().frequency;
 
-    //var usertime=moment(time, "hh:mm").format("X");
-    
-    console.log(moment.unix(time).format("hh:mm A"));
-    console.log(moment().diff(moment(time, "X"), "hours"));
+    var times = getNext(moment(time, "X"), frequency);
 
- getNext(moment(time, "X"),frequency);
-   //console.log(moment.duration(moment(time, "X"),"minutes"));
-
- 
-  
     var newRow = $("<tr>").append(
         $("<td>").text(train),
         $("<td>").text(destination),
-        $("<td>").text(frequency)
+        $("<td>").text(frequency),
+        $("<td>").text(times[1]),
+        $("<td>").text(times[0] + " min")
     );
 
     $("#trains-table > tbody").append(newRow);
 });
 
-function getNext(time,frequency){
- var currentTime = moment();
- var freq = parseInt(frequency);
- 
+function getNext(time, frequency) {
+
+    var frequency = parseInt(frequency);
+    var times = [];
+
+    var firstTrain = moment(time).format("HHmm");
+
+    var timeFix = moment(firstTrain, "HHmm").subtract(1, "years");
+
+    var difference = moment().diff(moment(timeFix), "minutes");
+
+    var timeRemaining = difference % frequency;
+
+    var timeLeft = frequency - timeRemaining;
+
+    times.push(timeLeft);
+
+    var nextArrival = moment().add(timeLeft, "minutes").format("HH:mm A");
+
+    times.push(nextArrival);
+
+    return times;
 }
